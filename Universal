@@ -1,0 +1,234 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/thanhdat4461/OrionMoblie/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Universal GUI", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+-- Tab 1: TP To Players
+local Tab1 = Window:MakeTab({
+    Name = "TP To Players",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local Section1 = Tab1:AddSection({
+    Name = "Teleport:"
+})
+
+local plrs = game.Players
+
+-- Fetch all player names
+local function getPlayerNames()
+    local playerNames = {}
+    for _, player in ipairs(plrs:GetPlayers()) do
+        table.insert(playerNames, player.Name)
+    end
+    return playerNames
+end
+
+local playerNames = getPlayerNames()
+
+Tab1:AddDropdown({
+    Name = "Players",
+    Default = playerNames[1] or "No Players",
+    Options = playerNames,
+    Callback = function(selectedPlayerName)
+        local localPlayer = game.Players.LocalPlayer
+        local targetPlayer = plrs:FindFirstChild(selectedPlayerName)
+
+        local function teleportToPlayer(targetPlayer)
+            -- Check if both players have a character
+            if localPlayer.Character and targetPlayer and targetPlayer.Character then
+                -- Get the primary parts of both characters
+                local playerRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+                if playerRoot and targetRoot then
+                    -- Teleport the player to the target player's position
+                    playerRoot.CFrame = targetRoot.CFrame
+                end
+            end
+        end
+
+        teleportToPlayer(targetPlayer)
+    end
+})
+
+local walkSpeedSection = Tab1:AddSection({
+    Name = "Walk Speed:"
+})
+
+local jumpPowerSection = Tab1:AddSection({
+    Name = "Jump Power:"
+})
+
+-- Walk Speed Slider
+walkSpeedSection:AddSlider({
+    Name = "Walk Speed",
+    Min = 16,
+    Max = 1000,
+    Default = 16,
+    Increment = 1,
+    ValueName = "WalkSpeed",
+    Callback = function(value)
+        local localPlayer = game.Players.LocalPlayer
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+            localPlayer.Character.Humanoid.WalkSpeed = value
+        end
+    end
+})
+
+-- Jump Power Slider
+jumpPowerSection:AddSlider({
+    Name = "Jump Power",
+    Min = 50,
+    Max = 1000,
+    Default = 50,
+    Increment = 1,
+    ValueName = "JumpPower",
+    Callback = function(value)
+        local localPlayer = game.Players.LocalPlayer
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+            localPlayer.Character.Humanoid.JumpPower = value
+        end
+    end
+})
+
+-- Tab 2: Fling
+local Tab2 = Window:MakeTab({
+    Name = "Fling",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local Section2 = Tab2:AddSection({
+    Name = "Fling Options:"
+})
+
+-- Variables
+local PlayerService = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local plr = PlayerService.LocalPlayer
+local BodyThrust = nil
+
+local Fling = {
+	false, --toggle
+	"", --hotkey
+	300, --speed
+	false, --server
+	false --stop vertfling
+}
+
+local function DisplayText(title, text, duration)
+	duration = duration or 1
+	game.StarterGui:SetCore("SendNotification", 
+		{
+			Title = title;
+			Text = text;
+			Icon = "";
+			Duration = duration;
+		}
+	)
+end
+
+local function GetRigType()
+    if plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
+        return Enum.HumanoidRigType.R15
+    elseif plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 then
+        return Enum.HumanoidRigType.R6
+    else
+        return nil
+    end
+end
+
+local function GetDeadState(player)
+    if player.Character.Humanoid:GetState() == Enum.HumanoidStateType.Dead then
+        return true
+    else
+        return false
+    end
+end
+
+local function EnableNoClip()
+    if GetDeadState(plr) == false then
+        if GetRigType() == Enum.HumanoidRigType.R6 then
+            plr.Character:FindFirstChild("Torso").CanCollide = false
+            plr.Character:FindFirstChild("Head").CanCollide = false
+            plr.Character:FindFirstChild("HumanoidRootPart").CanCollide = false
+        elseif GetRigType() == Enum.HumanoidRigType.R15 then
+            plr.Character:FindFirstChild("UpperTorso").CanCollide = false
+            plr.Character:FindFirstChild("LowerTorso").CanCollide = false
+            plr.Character:FindFirstChild("Head").CanCollide = false
+            plr.Character:FindFirstChild("HumanoidRootPart").CanCollide = false
+        end
+    end
+end
+
+local function DisableNoClip()
+    if GetDeadState(plr) == false then
+        if GetRigType() == Enum.HumanoidRigType.R6 then
+            plr.Character:FindFirstChild("Torso").CanCollide = true
+            plr.Character:FindFirstChild("Head").CanCollide = true
+            plr.Character:FindFirstChild("HumanoidRootPart").CanCollide = true
+        elseif GetRigType() == Enum.HumanoidRigType.R15 then
+            plr.Character:FindFirstChild("UpperTorso").CanCollide = true
+            plr.Character:FindFirstChild("LowerTorso").CanCollide = true
+            plr.Character:FindFirstChild("Head").CanCollide = true
+            plr.Character:FindFirstChild("HumanoidRootPart").CanCollide = true
+        end
+    end
+end
+
+local function TToggleFling()
+    Fling[1] = not Fling[1]
+    if Fling[1] then
+        BodyThrust = Instance.new("BodyThrust")
+        if GetRigType() == Enum.HumanoidRigType.R6 then
+            BodyThrust.Parent = plr.Character.Torso
+        elseif GetRigType() == Enum.HumanoidRigType.R15 then
+            BodyThrust.Parent = plr.Character.UpperTorso
+        end
+        
+        EnableNoClip()
+        BodyThrust.Force = Vector3.new(Fling[3], 0, 0)
+        BodyThrust.Location = Vector3.new(0, 0, Fling[3])
+        DisplayText("Fling", "Enabled fling", 3)
+    else
+        DisableNoClip()
+        for i, v in pairs(plr.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Velocity, v.RotVelocity = Vector3.new(0, 0, 0), Vector3.new(0, 0, 0)
+            end
+        end
+        BodyThrust:Destroy()
+        DisplayText("Fling", "Disabled fling", 3)
+    end
+end
+
+-- Orion UI Elements for Fling
+Section2:AddToggle({
+	Name = "Enable Fling",
+	Default = false,
+	Callback = function(value)
+		TToggleFling()
+	end
+})
+
+Section2:AddTextbox({
+	Name = "Fling Speed",
+	Default = "300",
+	TextDisappear = false,
+	Callback = function(value)
+		Fling[3] = tonumber(value)
+		DisplayText("Fling Speed", "Set speed to " .. value, 3)
+	end	  
+})
+
+Section2:AddBind({
+	Name = "Hotkey",
+	Default = Enum.KeyCode.RightShift,
+	Hold = false,
+	Callback = function()
+		TToggleFling()
+	end
+})
