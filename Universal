@@ -1,20 +1,31 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/thanhdat4461/OrionMoblie/main/source')))()
+local Window = OrionLib:MakeWindow({ Name = "Jam Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest" })
 
-local Window = OrionLib:MakeWindow({Name = "Normal Script", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionConfig"})
-
-local Tab1 = Window:MakeTab({
-    Name = "TP To Players",
+local PlayerTab = Window:MakeTab({
+    Name = "Player tab",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
-local Section1 = Tab1:AddSection({
-    Name = "Teleport:"
+local FindObjectsTab = Window:MakeTab({
+    Name = "Find All Objects Here",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+OrionLib:MakeNotification({
+    Name = "Support me",
+    Content = "Support my script or dono me some robux",
+    Image = "rbxassetid://4483345998",
+    Time = 15
+})
+
+local Section = PlayerTab:AddSection({
+    Name = "Teleport"
 })
 
 local plrs = game.Players
 
--- Fetch all player names
 local function getPlayerNames()
     local playerNames = {}
     for _, player in ipairs(plrs:GetPlayers()) do
@@ -25,8 +36,8 @@ end
 
 local playerNames = getPlayerNames()
 
-Tab1:AddDropdown({
-    Name = "Players",
+PlayerTab:AddDropdown({
+    Name = "Select Player",
     Default = playerNames[1] or "No Players",
     Options = playerNames,
     Callback = function(selectedPlayerName)
@@ -34,14 +45,11 @@ Tab1:AddDropdown({
         local targetPlayer = plrs:FindFirstChild(selectedPlayerName)
 
         local function teleportToPlayer(targetPlayer)
-            
             if localPlayer.Character and targetPlayer and targetPlayer.Character then
-                
                 local playerRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
 
                 if playerRoot and targetRoot then
-                    -- Teleport the player to the target player's position
                     playerRoot.CFrame = targetRoot.CFrame
                 end
             end
@@ -51,73 +59,30 @@ Tab1:AddDropdown({
     end
 })
 
-local MainTab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+plrs.PlayerAdded:Connect(function(player)
+    table.insert(playerNames, player.Name)
+end)
 
-local isAutoTeleportEnabled = false
-local isInfiniteJumpEnabled = false
-
-local function autoTeleportCheckpoints()
-    local checkpoints = workspace:WaitForChild("Checkpoints"):GetChildren()
-    table.sort(checkpoints, function(a, b)
-        return tonumber(a.Name) < tonumber(b.Name)
-    end)
-    
-    for _, checkpoint in ipairs(checkpoints) do
-        if isAutoTeleportEnabled then
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = checkpoint.CFrame
-            wait(1)  -- Add a delay between teleports to avoid issues
-        else
+plrs.PlayerRemoving:Connect(function(player)
+    for i, name in ipairs(playerNames) do
+        if name == player.Name then
+            table.remove(playerNames, i)
             break
         end
     end
-end
+end)
 
-local function onJumpRequest()
-    if isInfiniteJumpEnabled then
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end
-
-MainTab:AddToggle({
-    Name = "Infinite Jump",
-    Default = false,
-    Callback = function(state)
-        isInfiniteJumpEnabled = state
-    end
+local SectionWalkSpeed = PlayerTab:AddSection({
+    Name = "Walk Speed"
 })
 
-MainTab:AddToggle({
-    Name = "Auto Teleport to Checkpoints",
-    Default = false,
-    Callback = function(state)
-        isAutoTeleportEnabled = state
-        if isAutoTeleportEnabled then
-            autoTeleportCheckpoints()
-        end
-    end
+local SectionJumpPower = PlayerTab:AddSection({
+    Name = "Jump Power"
 })
 
-local walkSpeedSection = MainTab:AddSection({
-    Name = "Walk Speed:"
-})
-
-local jumpPowerSection = MainTab:AddSection({
-    Name = "Jump Power:"
-})
-
-walkSpeedSection:AddTextbox({
-    Name = "Enter Walk Speed",
-    Default = "16",
+SectionWalkSpeed:AddTextbox({
+    Name = "Set Walk Speed",
+    Default = "",
     TextDisappear = false,
     Callback = function(value)
         local speed = tonumber(value)
@@ -130,9 +95,9 @@ walkSpeedSection:AddTextbox({
     end
 })
 
-jumpPowerSection:AddTextbox({
-    Name = "Enter Jump Power",
-    Default = "50",
+SectionJumpPower:AddTextbox({
+    Name = "Set Jump Power",
+    Default = "",
     TextDisappear = false,
     Callback = function(value)
         local power = tonumber(value)
@@ -145,6 +110,229 @@ jumpPowerSection:AddTextbox({
     end
 })
 
-game:GetService("UserInputService").JumpRequest:Connect(onJumpRequest)
+local infiniteJumpEnabled = false
 
-OrionLib:Init()
+PlayerTab:AddToggle({
+    Name = "Infinite Jump",
+    Default = false,
+    Callback = function(value)
+        infiniteJumpEnabled = value
+    end    
+})
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if infiniteJumpEnabled then
+        local localPlayer = game.Players.LocalPlayer
+        if localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            localPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+        end
+    end
+end)
+
+-- Disable sitting
+local function disableSitting()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+end
+
+disableSitting()
+
+game.Players.LocalPlayer.CharacterAdded:Connect(disableSitting)
+
+-- ESP Functionality
+local function createESP(part)
+    local espBox = Instance.new("BoxHandleAdornment")
+    espBox.Adornee = part
+    espBox.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+    espBox.Color3 = Color3.new(1, 0, 0)
+    espBox.Transparency = 0.5
+    espBox.ZIndex = 10
+    espBox.AlwaysOnTop = true
+    espBox.Parent = part
+
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Adornee = part
+    billboardGui.Size = UDim2.new(0, 100, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = part.Name
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextScaled = true
+    textLabel.TextSize = 8
+    textLabel.Parent = billboardGui
+
+    billboardGui.Parent = part
+end
+
+local function addESPToParts(folder)
+    local parts = folder:GetChildren()
+
+    for _, part in ipairs(parts) do
+        createESP(part)
+    end
+end
+
+-- New Section for Auto Tween in Find Objects Tab
+local SectionAutoTween = FindObjectsTab:AddSection({
+    Name = "Auto Find All Koalas"
+})
+
+local function autoFindAllKoalas()
+    local TweenService = game:GetService("TweenService")
+    local Players = game:GetService("Players")
+
+    local player = Players.LocalPlayer
+    local humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local objectsToFind = workspace:WaitForChild("ObjectsToFind")
+    local parts = objectsToFind:GetChildren()
+
+    local tweenDuration = 0.5 -- Duration to move to each part (0.5 seconds)
+    local waitDuration = 0.5 -- Time to wait at each part (0.5 seconds)
+
+    local function tweenToPart(targetPart)
+        if humanoidRootPart then
+            local targetCFrame = targetPart.CFrame
+            local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    end
+
+    local function moveToParts()
+        while true do
+            for _, part in ipairs(parts) do
+                tweenToPart(part)
+                wait(waitDuration)
+            end
+        end
+    end
+
+    moveToParts()
+end
+
+SectionAutoTween:AddToggle({
+    Name = "Enable Auto Find All Koalas",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            autoFindAllKoalas()
+        end
+    end
+})
+
+local SectionFindFlags = FindObjectsTab:AddSection({
+    Name = "Find All Flags"
+})
+
+SectionFindFlags:AddToggle({
+    Name = "Enable ESP for Flags",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            addESPToParts(workspace:WaitForChild("ToFind"))
+        end
+    end
+})
+
+local function autoFindAllFlags()
+    local TweenService = game:GetService("TweenService")
+    local Players = game:GetService("Players")
+
+    local player = Players.LocalPlayer
+    local humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local toFind = workspace:WaitForChild("ToFind")
+    local parts = toFind:GetChildren()
+
+    local tweenDuration = 0.5 -- Duration to move to each part (0.5 seconds)
+    local waitDuration = 0.5 -- Time to wait at each part (0.5 seconds)
+
+    local function tweenToPart(targetPart)
+        if humanoidRootPart then
+            local targetCFrame = targetPart.CFrame
+            local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    end
+
+    local function moveToParts()
+        while true do
+            for _, part in ipairs(parts) do
+                tweenToPart(part)
+                wait(waitDuration)
+            end
+        end
+    end
+
+    moveToParts()
+end
+
+SectionFindFlags:AddToggle({
+    Name = "Enable Auto Find All Flags",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            autoFindAllFlags()
+        end
+    end
+})
+--Esp For Player here
+local playerESPEnabled = false
+
+PlayerTab:AddToggle({
+    Name = "Enable ESP for Players",
+    Default = false,
+    Callback = function(enabled)
+        playerESPEnabled = enabled
+        if playerESPEnabled then
+            local function createESP(player)
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = player.Character
+                highlight.Parent = player.Character
+                highlight.FillColor = Color3.new(0, 0, 1) -- Red color
+                highlight.OutlineColor = Color3.new(2, 2, 2) -- White outline
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            end
+
+            local function addESPToPlayers()
+                for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer and player.Character then
+                        createESP(player)
+                    end
+                end
+            end
+
+            game:GetService("Players").PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(function(character)
+                    createESP(player)
+                end)
+            end)
+
+            addESPToPlayers()
+
+            while playerESPEnabled do
+                addESPToPlayers()
+                wait(0.1)
+            end
+        else
+            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                if player ~= game.Players.LocalPlayer and player.Character then
+                    local highlight = player.Character:FindFirstChildOfClass("Highlight")
+                    if highlight then
+                        highlight:Destroy()
+                    end
+                end
+            end
+        end
+    end
+})
