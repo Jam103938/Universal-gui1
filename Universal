@@ -336,3 +336,109 @@ PlayerTab:AddToggle({
         end
     end
 })
+
+local AutoKillAllTab = Window:MakeTab({
+    Name = "Auto Kill All",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Variables to store loop states
+local fortbloxPistolLoopActive = false
+local sniperPUBGSimulatorLoopActive = false
+
+-- Function for Fortblox Pistol loop
+local function fortbloxPistolLoop()
+    while fortbloxPistolLoopActive do
+        local player = game.Players.LocalPlayer
+        for i, v in ipairs(game.Players:GetPlayers()) do
+            if v.Name ~= player.Name then
+                local UpperTorso = v.Character and v.Character:FindFirstChild("UpperTorso")
+                local humanoid = v.Character and v.Character:FindFirstChild("Humanoid")
+                if UpperTorso and humanoid then
+                    local args = {
+                        [1] = player.Character and player.Character:FindFirstChild("Pistol"),
+                        [2] = {
+                            ["p"] = Vector3.new(-52.32542037963867, 17.443281173706055, -381.6856689453125),
+                            ["pid"] = 1,
+                            ["part"] = UpperTorso,
+                            ["d"] = 7.382983684539795,
+                            ["maxDist"] = 7.36384916305542,
+                            ["h"] = humanoid,
+                            ["m"] = Enum.Material.Plastic,
+                            ["sid"] = 2,
+                            ["t"] = 0.1977286875705453,
+                            ["n"] = Vector3.new(-0.648139476776123, 0.2566099762916565, -0.7169842720031738)
+                        }
+                    }
+                    game:GetService("ReplicatedStorage").WeaponsSystem.Network.WeaponHit:FireServer(unpack(args))
+                end
+            end
+        end
+        wait(0.1)
+    end
+end
+
+-- Function for Sniper PUBG Simulator loop
+local function sniperPUBGSimulatorLoop()
+    while sniperPUBGSimulatorLoopActive do
+        local player = game.Players.LocalPlayer
+        for i, v in ipairs(game.Players:GetPlayers()) do
+            if v.Name ~= player.Name then
+                local UpperTorso = v.Character and v.Character:FindFirstChild("UpperTorso")
+                local humanoid = v.Character and v.Character:FindFirstChild("Humanoid")
+                if UpperTorso and humanoid then
+                    local args = {
+                        [1] = player.Character and player.Character:FindFirstChild("Sniper"),
+                        [2] = {
+                            ["p"] = Vector3.new(-69.17404174804688, 53.9786491394043, -79.91133117675781),
+                            ["pid"] = 1,
+                            ["part"] = UpperTorso,
+                            ["d"] = 4.149898052215576,
+                            ["maxDist"] = 4.144620895385742,
+                            ["h"] = humanoid,
+                            ["m"] = Enum.Material.Plastic,
+                            ["sid"] = 3,
+                            ["t"] = 0.10278839607565572,
+                            ["n"] = Vector3.new(-0.9585323333740234, 0.012211349792778492, 0.284722238779068)
+                        }
+                    }
+                    game:GetService("ReplicatedStorage").WeaponsSystem.Network.WeaponHit:FireServer(unpack(args))
+                end
+            end
+        end
+        wait(0.1)
+    end
+end
+
+-- Functions to toggle the loops
+local function toggleFortbloxPistolLoop(state)
+    fortbloxPistolLoopActive = state
+    if fortbloxPistolLoopActive then
+        spawn(fortbloxPistolLoop)
+    end
+end
+
+local function toggleSniperPUBGSimulatorLoop(state)
+    sniperPUBGSimulatorLoopActive = state
+    if sniperPUBGSimulatorLoopActive then
+        spawn(sniperPUBGSimulatorLoop)
+    end
+end
+
+-- Add checkboxes to the Auto Kill All tab
+local fortbloxPistolCheckbox = AutoKillAllTab:AddToggle({
+    Name = "Fortblox Pistol Loop Kill All",
+    Default = false,
+    Callback = function(state)
+        toggleFortbloxPistolLoop(state)
+    end
+})
+
+local sniperPUBGSimulatorCheckbox = AutoKillAllTab:AddToggle({
+    Name = "Sniper PUBG Simulator Kill All",
+    Default = false,
+    Callback = function(state)
+        toggleSniperPUBGSimulatorLoop(state)
+    end
+})
